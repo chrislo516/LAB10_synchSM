@@ -90,9 +90,9 @@ int main(void) {
     DDRB = 0xFF, PORTB = 0x00;
     unsigned char i = 0;
 
-    task[i++] = makeTask(start,300,&tick3);
+    task[i++] = makeTask(start,1000,&tick3);
     task[i++] = makeTask(startBL,1000,&tickBL);
-    task[i]   = makeTask(startCOM,300,&tickCOM);
+    task[i]   = makeTask(startCOM,1000,&tickCOM);
  
     TimerSet(timePeriod);
     TimerOn();
