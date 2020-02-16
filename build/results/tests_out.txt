@@ -1,0 +1,10 @@
+Breakpoint 1 at [34m0x4b4[m: file [32msource/main.c[m, line 81.
+Note: automatically using hardware breakpoints for read-only addresses.
+$1 = 0
+Will ignore next 999 crossings of breakpoint 1.  Continuing.
+$2 = 999
+$3 = 0 '\000'
+quit
+EOF [assumed Y]
+Detaching from program: /Users/Macbook/Desktop/cs120b/Lab10_synchSM/build/objects/main.elf, Remote target
+Remote doesn't know how to detach
