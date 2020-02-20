@@ -13,8 +13,7 @@
 #ifdef _SIMULATE_
 #include "simAVRHeader.h"
 #endif
-
-#define button (~PINA&0x07)
+#define button (~PINA&0x04)
 
 volatile unsigned char TimerFlag = 0;
 unsigned long _avr_timer_M = 1;			
@@ -73,16 +72,16 @@ LED makeTask(int state, unsigned long period, int(*Tick)(int)){
 
 #define taskNum 4
 #define MAX 4
+
 enum BuzzSM{startBuzz, waitBuzz, play, offBuzz};
 enum ThreeLEDsSM{start,s1};
 enum BlinkingLEDSM{startBL,on,off};
 enum CombineLEDsSM{startCOM,blink};
-enum pulse{startPulse, up, down, wait} pulses;
+
 unsigned char led3;
 unsigned char ledBl;
 unsigned char tempBuzz = 0x00;
-unsigned long pulse=0;
-unsigned long timePeriod = 2;
+const unsigned long timePeriod = 2;
 
 LED task[taskNum];
 
@@ -90,25 +89,24 @@ int Buzz(int state);
 int tick3(int state);
 int tickBL(int state);
 int tickCOM(int state);
-void TickPulse();
 
 int main(void) {
     /* Insert DDR and PORT initializations */
-    DDRC = 0xFF, PORTC = 0x00;
-    DDRB = 0xFF, PORTB = 0x00;
     DDRA = 0x00, PORTA = 0xFF;
-    pulses = startPulse;
-    task[0] = makeTask(start,300,&tick3);
-    task[1] = makeTask(startBL,1000,&tickBL);
-    task[2] = makeTask(startBuzz,1,&Buzz); 
-    task[3] = makeTask(startCOM,1,&tickCOM);
+    DDRB = 0xFF, PORTB = 0x00;
+    unsigned char i = 0;
+
+    task[i++] = makeTask(startBuzz,2,&Buzz);
+    task[i++] = makeTask(start,300,&tick3);
+    task[i++] = makeTask(startBL,1000,&tickBL);
+    task[i]   = makeTask(startCOM,2,&tickCOM);
+ 
+    TimerSet(timePeriod);
+    TimerOn();
 
     /* Insert your solution below */
     while (1) {
-        TickPulse();
-	TimerSet(timePeriod);
-        TimerOn();
-	for (unsigned char i = 0; i < taskNum; i++) {
+     for (unsigned char i = 0; i < taskNum; i++) {
 	   if (task[i].eTime >= task[i].period) {
 	      task[i].state = task[i].Tick(task[i].state);
 	      task[i].eTime = 0;
@@ -121,71 +119,62 @@ int main(void) {
   return 0;
 }
 
-void TickPulse(){
-  unsigned char press;
-  unsigned char index;
-  index = timePeriod; 
-  switch(pulses){
-   case startPulse:
-	pulses = wait;
-        press = 0;
+int Buzz(int state){
+  switch(state){
+    case startBuzz:
+	state = offBuzz;
 	break;
-   case wait:
-	if(button == 0x01){
-	  pulses = up;
-	  press = 1;
-	}
-	else if(button == 0x02){
-	  pulses = down;
-	  press = 1;
-	}
-	else
-	  pulses = wait;
-   	break;
-   case up:
-	if(button == 0x01)
-	  pulses = up;
+
+    case waitBuzz:
+	if(button == 0x04)
+         state = play;
+        else
+         state = offBuzz;
+	break;
+   
+    case play:
+	if(button == 0x04)
+	 state = waitBuzz;
 	else 
-	  pulses = wait;
+	 state = offBuzz;
 	break;
-   case down:
-	if(button == 0x02)
-          pulses = down;
-	else 
-	  pulses = wait;
+
+    case offBuzz:
+	if(button == 0x04)
+         state = play;
+        else
+         state = waitBuzz;
 	break;
-   default: pulses = startPulse; break;
-   }
 
-   switch(pulses){
-   case startPulse:
-        break;
-   case wait:
-        PORTC = 0;
+    default:
+	state = startBuzz;
 	break;
-   case up:
-        if((button == 0x01)&&press){
-          index++;
-	  timePeriod = index;
-	  press = 0;
-	  PORTC = 0x40;
-	}
-        break;
-   case down:
-        if((button == 0x02)&&press){
-          index--;
-          timePeriod = index;
-	  press = 0;
-	  PORTC = 0x20;
-	}
-	   if(timePeriod <= 0x01)
-	     timePeriod = 0x01;
-        break;
-   default: break;
-  }
+    }	  
 
+   switch(state){
+    case startBuzz:
+        break;   
+         
 
+    case waitBuzz:
+	 tempBuzz = SetBit(ledBl,4,0);
+	break;
+
+    case play:
+	 tempBuzz = SetBit(ledBl,4,1);
+  
+	break;
+    
+    case offBuzz:
+	tempBuzz = SetBit(ledBl,4,0);
+	break;
+
+    default:
+        break;
+    }     
+    return state;
 }
+
 int tick3(int state){
   switch(state){
 
@@ -200,7 +189,7 @@ int tick3(int state){
       break;
     
     default:
-      state = state;
+      state = start;
       break;
   }
 
@@ -212,7 +201,7 @@ int tick3(int state){
          if(led3 < MAX)
 	  led3 <<= 1;
 	 else 
-	  led3 = 0x01; 
+	  led3 = SetBit(ledBl,0,1); 
        break;
 
        default:
@@ -258,75 +247,18 @@ int tickBL(int state){
   }
   return state;
 }
-int Buzz(int state){
-  switch(state){
-    case startBuzz:
-        state = offBuzz;
-        pulse = 0;
-	break;
-
-    case waitBuzz:
-        if(button == 0x04)
-         state = play;
-        else
-         state = offBuzz;
-        break;
-   
-    case play:
-        if(button == 0x04)
-         state = waitBuzz;
-        else 
-         state = offBuzz;
-        break;
-
-    case offBuzz:
-        if(button == 0x04)
-         state = play;
-        else
-         state = waitBuzz;
-        break;
-
-    default:
-        state = startBuzz;
-        break;
-    }     
-  switch(state){
-    case startBuzz:
-        break;   
-         
-
-    case waitBuzz:
-         tempBuzz = SetBit(ledBl,4,0);
-        break;
-
-    case play:
-         tempBuzz = SetBit(ledBl,4,1);
-  
-        break;
-    
-    case offBuzz:
-        tempBuzz = SetBit(ledBl,4,0);
-        break;
-
-    default:
-        break;
-    }
-    return state;
-}
 
 int tickCOM(int state){
   switch(state){
     case startCOM:
        state = blink;
-       PORTB = ledBl | led3 | tempBuzz;
+       PORTB = tempBuzz | ledBl | led3;
        break;
 
     case blink:
-       state = blink;
        break;
 
     default:
-       state = startCOM;
        break;
 
   }
@@ -335,7 +267,7 @@ int tickCOM(int state){
        break;
 
     case blink:
-       PORTB = ledBl | led3 | tempBuzz;
+	PORTB = tempBuzz | ledBl | led3;
        break;
 
     default:

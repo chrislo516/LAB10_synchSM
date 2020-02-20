@@ -1,10 +1,19 @@
-Breakpoint 1 at [34m0x4b4[m: file [32msource/main.c[m, line 81.
+Breakpoint 1 at [34m0x5c4[m: file [32msource/main.c[m, line 105.
 Note: automatically using hardware breakpoints for read-only addresses.
-$1 = 0
-Will ignore next 999 crossings of breakpoint 1.  Continuing.
-$2 = 999
-$3 = 0 '\000'
-quit
-EOF [assumed Y]
+Type commands for breakpoint(s) 1, one per line.
+End with a line saying just "end".
+Continuing.
+No symbol "timerPeriod" in current context.
+Type commands for breakpoint(s) 1, one per line.
+End with a line saying just "end".
+Continuing.
+$1 = 2
+Undefined command: "C".  Try "help".
+Continuing.
+$2 = 2
+Will ignore next 4 crossings of breakpoint 1.  Continuing.
+$3 = 2
+Will ignore next 4 crossings of breakpoint 1.  Continuing.
+$4 = 2
 Detaching from program: /Users/Macbook/Desktop/cs120b/Lab10_synchSM/build/objects/main.elf, Remote target
 Remote doesn't know how to detach

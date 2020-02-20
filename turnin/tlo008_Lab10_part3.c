@@ -14,6 +14,8 @@
 #include "simAVRHeader.h"
 #endif
 
+#define button (~PINA&0x04)
+
 volatile unsigned char TimerFlag = 0;
 unsigned long _avr_timer_M = 1;			
 unsigned long _avr_timer_cntcurr = 0;
@@ -71,13 +73,10 @@ LED makeTask(int state, unsigned long period, int(*Tick)(int)){
 
 #define taskNum 4
 #define MAX 4
-#define button (~PINA&0x04)
-
-enum BuzzSM{startBuzz, play};
+enum BuzzSM{startBuzz, waitBuzz, play, offBuzz};
 enum ThreeLEDsSM{start,s1};
 enum BlinkingLEDSM{startBL,on,off};
 enum CombineLEDsSM{startCOM,blink};
-
 unsigned char led3;
 unsigned char ledBl;
 unsigned char tempBuzz = 0x00;
@@ -93,11 +92,12 @@ int tickCOM(int state);
 int main(void) {
     /* Insert DDR and PORT initializations */
     DDRB = 0xFF, PORTB = 0x00;
+    DDRA = 0x00, PORTA = 0xFF;
     unsigned char i = 0;
 
-    task[i++] = makeTask(startBuzz,2,&Buzz);
     task[i++] = makeTask(start,300,&tick3);
     task[i++] = makeTask(startBL,1000,&tickBL);
+    task[i++] = makeTask(startBuzz,2,&Buzz); 
     task[i]   = makeTask(startCOM,2,&tickCOM);
  
     TimerSet(timePeriod);
@@ -116,39 +116,6 @@ int main(void) {
         TimerFlag = 0; 
     }
   return 0;
-}
-
-int Buzz(int state){
-  switch(state){
-    case startBuzz:
-	state = on;
-	break;
-   
-    case play:
-	if(button == 0x04)
-	 state = play;
-	else 
-	 state = startBuzz;
-	break;
-
-    default:
-	state = startBuzz;
-	break;
-    }	  
-
-   switch(state){
-    case startBuzz:
-	tempBuzz = SetBit(tempBuzz,4,1);
-        break;   
-         
-    case play:
-	 tempBuzz = SetBit(tempBuzz,4,0);
-        break;
-
-    default:
-        break;
-    }     
-    return state;
 }
 
 int tick3(int state){
@@ -222,6 +189,60 @@ int tickBL(int state){
        break;
   }
   return state;
+}
+int Buzz(int state){
+  switch(state){
+    case startBuzz:
+        state = offBuzz;
+        break;
+
+    case waitBuzz:
+        if(button == 0x04)
+         state = play;
+        else
+         state = offBuzz;
+        break;
+   
+    case play:
+        if(button == 0x04)
+         state = waitBuzz;
+        else 
+         state = offBuzz;
+        break;
+
+    case offBuzz:
+        if(button == 0x04)
+         state = play;
+        else
+         state = waitBuzz;
+        break;
+
+    default:
+        state = startBuzz;
+        break;
+    }     
+  switch(state){
+    case startBuzz:
+        break;   
+         
+
+    case waitBuzz:
+         tempBuzz = SetBit(ledBl,4,0);
+        break;
+
+    case play:
+         tempBuzz = SetBit(ledBl,4,1);
+  
+        break;
+    
+    case offBuzz:
+        tempBuzz = SetBit(ledBl,4,0);
+        break;
+
+    default:
+        break;
+    }
+    return state;
 }
 
 int tickCOM(int state){
